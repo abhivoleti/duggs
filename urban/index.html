@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>3D Map + Search</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet"/>
+
+<style>
+  body { margin: 0; overflow: hidden; font-family: sans-serif; }
+  #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+
+  /* Search UI */
+  #searchBox {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 10;
+    background: rgba(0,0,0,0.8);
+    padding: 10px;
+    border-radius: 8px;
+  }
+
+  #searchBox input {
+    width: 220px;
+    padding: 8px;
+    border: none;
+    outline: none;
+  }
+
+  #searchBox button {
+    padding: 8px;
+    border: none;
+    cursor: pointer;
+  }
+</style>
+</head>
+
+<body>
+
+<div id="map"></div>
+
+
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.1.0/mapbox-gl-geocoder.min.js"></script>
+<link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.1.0/mapbox-gl-geocoder.css">
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/gsap.min.js"></script>
+
+<script>
+mapboxgl.accessToken = 'pk.eyJ1IjoiYWJoaXZvbGV0aSIsImEiOiJjbW05cWV4ZTEwNXJtMnVwdjNyNmg3YmtzIn0.18DTC_mGG-07zo8XgcOgXg';
+
+const map = new mapboxgl.Map({
+  container: 'map',
+  style: 'mapbox://styles/mapbox/dark-v11',
+  center: [-73.5673, 45.5017],
+  zoom: 15,
+  pitch: 60,
+  bearing: -20,
+  antialias: true
+});
+
+map.on('load', () => {
+  map.addControl(
+  new mapboxgl.GeolocateControl({
+    positionOptions: {
+      enableHighAccuracy: true
+    },
+    trackUserLocation: true,
+    showUserHeading: true
+  })
+);
+
+  // 3D BUILDINGS
+  map.addLayer({
+    id: '3d-buildings',
+    source: 'composite',
+    'source-layer': 'building',
+    filter: ['==', 'extrude', 'true'],
+    type: 'fill-extrusion',
+    minzoom: 14,
+    paint: {
+      'fill-extrusion-color': '#111',
+      'fill-extrusion-height': ['get', 'height'],
+      'fill-extrusion-base': ['get', 'min_height'],
+      'fill-extrusion-opacity': 0.6
+    }
+  });
+
+  addThreeLayer();
+});
+
+let cube, merc;
+
+function addThreeLayer() {
+
+  const layer = {
+    id: 'three-layer',
+    type: 'custom',
+    renderingMode: '3d',
+
+    onAdd: function (map, gl) {
+      this.camera = new THREE.Camera();
+      this.scene = new THREE.Scene();
+
+      this.renderer = new THREE.WebGLRenderer({
+        canvas: map.getCanvas(),
+        context: gl
+      });
+
+      this.renderer.autoClear = false;
+
+      // light
+      const light = new THREE.DirectionalLight(0xffffff, 1);
+      light.position.set(0, -70, 100);
+      this.scene.add(light);
+
+      // START POSITION
+      merc = mapboxgl.MercatorCoordinate.fromLngLat(
+        [-73.5673, 45.5017],
+        0
+      );
+
+      const geo = new THREE.BoxGeometry(0.0005, 0.0005, 0.0005);
+      const mat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+
+      // cube = new THREE.Mesh(geo, mat);
+      // cube.position.set(merc.x, merc.y, merc.z);
+      // cube.scale.set(0.8, 0.8, 0.8);
+
+      this.scene.add(cube);
+
+      // interaction
+      this.raycaster = new THREE.Raycaster();
+      this.mouse = new THREE.Vector2();
+      this.hovered = false;
+
+      window.addEventListener('mousemove', (e) => {
+        this.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        this.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+      });
+    },
+
+    render: function (gl, matrix) {
+
+      this.camera.projectionMatrix = new THREE.Matrix4().fromArray(matrix);
+
+      // hover detection
+      this.raycaster.setFromCamera(this.mouse, this.camera);
+      const hits = this.raycaster.intersectObject(cube);
+
+      if (hits.length > 0 && !this.hovered) {
+        this.hovered = true;
+
+        gsap.to(cube.position, {
+          z: merc.z + 0.0005,
+          duration: 0.6
+        });
+
+        gsap.to(cube.scale, {
+          x: 1.3, y: 1.3, z: 1.3
+        });
+
+      } else if (hits.length === 0 && this.hovered) {
+        this.hovered = false;
+
+        gsap.to(cube.position, {
+          z: merc.z,
+          duration: 0.5
+        });
+
+        gsap.to(cube.scale, {
+          x: 0.8, y: 0.8, z: 0.8
+        });
+      }
+
+      this.renderer.resetState();
+      this.renderer.render(this.scene, this.camera);
+      map.triggerRepaint();
+    }
+  };
+
+  map.addLayer(layer);
+}
+
+// function goToCoords() {
+//   const input = document.getElementById("coords").value;
+//   const parts = input.split(",");
+
+//   if (parts.length !== 2) {
+//     alert("Use format: lng, lat");
+//     return;
+//   }
+
+//   const lng = parseFloat(parts[0]);
+//   const lat = parseFloat(parts[1]);
+
+//   if (isNaN(lng) || isNaN(lat)) {
+//     alert("Invalid numbers");
+//     return;
+//   }
+
+//   // move camera
+//   map.flyTo({
+//     center: [lng, lat],
+//     zoom: 16,
+//     pitch: 60,
+//     speed: 0.8
+//   });
+
+//   // move 3D object
+//   merc = mapboxgl.MercatorCoordinate.fromLngLat([lng, lat], 0);
+//   cube.position.set(merc.x, merc.y, merc.z);
+// }
+const coordinatesGeocoder = function (query) {
+  const matches = query.match(
+    /^[ ]*(?:Lat: )?(-?\d+\.?\d*)[, ]+(?:Lng: )?(-?\d+\.?\d*)[ ]*$/i
+  );
+  if (!matches) return null;
+
+  function coordinateFeature(lng, lat) {
+    return {
+      center: [lng, lat],
+      geometry: {
+        type: 'Point',
+        coordinates: [lng, lat]
+      },
+      place_name: 'Lat: ' + lat + ' Lng: ' + lng,
+      place_type: ['coordinate'],
+      type: 'Feature'
+    };
+  }
+
+  const coord1 = Number(matches[1]);
+  const coord2 = Number(matches[2]);
+  const geocodes = [];
+
+  if (coord1 < -90 || coord1 > 90) {
+    geocodes.push(coordinateFeature(coord1, coord2));
+  }
+
+  if (coord2 < -90 || coord2 > 90) {
+    geocodes.push(coordinateFeature(coord2, coord1));
+  }
+
+  if (geocodes.length === 0) {
+    geocodes.push(coordinateFeature(coord1, coord2));
+    geocodes.push(coordinateFeature(coord2, coord1));
+  }
+
+  return geocodes;
+};
+
+const geocoder = new MapboxGeocoder({
+  accessToken: mapboxgl.accessToken,
+  localGeocoder: coordinatesGeocoder,
+  mapboxgl: mapboxgl,
+  zoom: 16,
+  placeholder: 'Search or type: lng, lat',
+  reverseGeocode: true
+});
+
+map.addControl(geocoder);
+
+geocoder.on('result', (e) => {
+  const coords = e.result.center;
+
+  // move map (optional but smooth)
+  map.flyTo({
+    center: coords,
+    zoom: 16,
+    pitch: 60
+  });
+
+  // move your 3D object
+  merc = mapboxgl.MercatorCoordinate.fromLngLat(coords, 0);
+  cube.position.set(merc.x, merc.y, merc.z);
+});
+</script>
+
+</body>
+</html>

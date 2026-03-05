@@ -12,6 +12,14 @@
   body { margin: 0; overflow: hidden; font-family: sans-serif; }
   #map { position: absolute; top: 0; bottom: 0; width: 100%; }
   
+  .mapboxgl-ctrl-geocoder {
+  position: absolute !important;
+  top: 80%;
+  left: 30%;
+  transform: translate(-320%, -80%);
+  fill: #000000;
+  width: 400px;
+}
 
  
 </style>
@@ -65,7 +73,12 @@ map.on('load', () => {
     type: 'fill-extrusion',
     minzoom: 4,
     paint: {
-      'fill-extrusion-color': '#111',
+      'fill-extrusion-color': [
+         'case',
+      ['boolean', ['feature-state', 'selected'], false],
+      '#FFF', 
+        '#111'
+      ],
       'fill-extrusion-height': ['get', 'height'],
       'fill-extrusion-base': ['get', 'min_height'],
       'fill-extrusion-opacity': 1
@@ -73,6 +86,11 @@ map.on('load', () => {
   });
 
 });
+
+map.on("click", (e) => {
+  highlightBuilding(e.coord1,e.coord2);
+});
+
 
 const coordinatesGeocoder = function (query) {
   const matches = query.match(
@@ -117,28 +135,62 @@ const geocoder = new MapboxGeocoder({
   accessToken: mapboxgl.accessToken,
   localGeocoder: coordinatesGeocoder,
   mapboxgl: mapboxgl,
-  zoom: 106,
-  placeholder: 'Search or type: lng, lat',
+  zoom: 17,
+  placeholder: '',
   reverseGeocode: true
 });
 
 map.addControl(geocoder);
 
-geocoder.on('result', (e) => {
-  const coords = e.result.center;
+let marker = null;
 
-  // move map (optional but smooth)
+geocoder.on('result', (e) => {
+
+  const coords = e.result.center;
+  const lng = coords[0];
+  const lat = coords[1];
+
   map.flyTo({
     center: coords,
-    zoom: 16,
+    zoom: 17,
     pitch: 60
   });
 
-  // move your 3D object
-  merc = mapboxgl.MercatorCoordinate.fromLng
-  Lat(coords, 0);
-  cube.position.set(merc.x, merc.y, merc.z);
+  map.once("moveend", () => {
+    highlightBuilding(lng, lat);
+  });
+
 });
+
+function highlightBuilding(lng, lat) {
+
+  const point = map.project([lng, lat]);
+
+  const features = map.queryRenderedFeatures(point, {
+    layers: ['3d-buildings']
+  });
+
+  if (!features || features.length === 0) {
+    console.log("No building found at that coordinate");
+    return;
+  }
+
+  const building = features[0];
+
+  if (!building.id) {
+    console.log("Building has no ID (cannot highlight)");
+    return;
+  }
+
+  map.setFeatureState(
+    {
+      source: 'composite',
+      sourceLayer: 'building',
+      id: building.id
+    },
+    { selected: true }
+  );
+}
 </script>
 
 </body>

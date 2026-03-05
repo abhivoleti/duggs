@@ -14,11 +14,12 @@
   
   .mapboxgl-ctrl-geocoder {
   position: absolute !important;
-  top: 80%;
+  top: 180%;
   left: 30%;
   transform: translate(-320%, -80%);
   fill: #000000;
   width: 400px;
+  opacity: 0.7;
 }
 
  
@@ -136,7 +137,7 @@ const geocoder = new MapboxGeocoder({
   localGeocoder: coordinatesGeocoder,
   mapboxgl: mapboxgl,
   zoom: 17,
-  placeholder: '',
+  placeholder: '    ',
   reverseGeocode: true
 });
 

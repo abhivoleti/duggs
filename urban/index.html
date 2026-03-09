@@ -42,8 +42,51 @@
   font-size: 18px;
   letter-spacing: 1px;
 }
+#map {
+  position:absolute;
+  top:0;
+  bottom:0;
+  width:100%;
+  z-index:0;
+}
 
- 
+#searchToggle{
+  position:absolute;
+  top:20px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:9999;
+  display:inline-block;
+  cursor: pointer;
+}
+
+
+#sbar, #sbar2{
+  width:40px;
+  display:block;
+  cursor:pointer;
+}
+
+#sbar{
+  display:none;
+}
+#sbar{
+  display:block;
+}
+
+
+/* hover only on the icon */
+#sbar2:hover{
+  display:none;
+}
+
+#sbar2:hover + #sbar{
+  display:block;
+}
+
+.mapboxgl-ctrl-geocoder{
+  display:none;
+}
 </style>
 </head>
 
@@ -53,7 +96,14 @@
   </div>
 </div>
 
-<div id="map"></div>
+<div id="searchToggle">
+
+  <img id="sbar2" src='assets/images/sbar1.png'>
+  <img id="sbar" src='assets/images/sbar.png'>
+
+</div>
+
+
 
 <div id="map"></div>
 
@@ -86,8 +136,9 @@ map.on('load', () => {
       enableHighAccuracy: true
     },
     trackUserLocation: true,
-    showUserHeading: true
-  })
+    showUserHeading: false
+  }),
+  "bottom-left"
 );
 
 
@@ -219,6 +270,27 @@ function highlightBuilding(lng, lat) {
     { selected: true }
   );
 }
+let searchActive = false;
+
+const icon1 = document.getElementById("sbar");
+const icon2 = document.getElementById("sbar2");
+
+function toggleSearch(){
+
+  const searchBar = document.querySelector(".mapboxgl-ctrl-geocoder");
+
+  if(!searchActive){
+    searchBar.style.display = "block";
+    searchActive = true;
+  }else{
+    searchBar.style.display = "none";
+    searchActive = false;
+  }
+
+}
+
+icon1.addEventListener("click", toggleSearch);
+icon2.addEventListener("click", toggleSearch);
 </script>
 
 </body>

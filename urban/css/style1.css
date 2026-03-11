@@ -19,8 +19,16 @@ canvas{
     position: fixed;
     top: 0;
     left: 0;
+    pointer-events: none;
 }
-
+#map{
+  position:absolute;
+  width:100%;
+  height:100%;
+}
+#map{
+  pointer-events: none;
+}
 .nav{
     position: fixed;
     top: 0;
@@ -70,17 +78,48 @@ p{
     pointer-events: none;
 }
 
-#floatingVideo {
+.floatingVideo {
   position: fixed;
-  top: 890px;
-  left: 1510px;
+  top: 90px;
+  left: 1320px;
 
-  opacity: 1;
-
-  width: 120px;
+  width: 600px;
   height: auto;
 
-  z-index: 10;
+  transform: translateX(-50%);
+  z-index: 9999;
   pointer-events: none;
 }
 
+.floatingVideo img,
+.floatingVideo video {
+  width: 100%;
+  height: auto;
+}
+
+.navl {
+  position: fixed;
+  top: 659px;
+  left: 1320px;
+
+  width: 46px;
+  height: auto;
+
+  transform: translateX(-50%);
+  z-index: 9999;
+}
+
+.navl img,
+.navl video {
+  width: 100%;
+  height: auto;
+}
+
+.navimg:hover {
+  content: url("assets/images/navone.png");
+}
+
+.navimg{
+  position: relative;
+  z-index: 999999;
+}

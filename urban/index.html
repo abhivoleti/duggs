@@ -51,18 +51,20 @@
 }
 
 #searchToggle{
-  position:absolute;
+  position:fixed;
+   width:  20px;
   top:20px;
   left:50%;
   transform:translateX(-50%);
   z-index:9999;
   display:inline-block;
   cursor: pointer;
+   
 }
 
-
+/* 
 #sbar, #sbar2{
-  width:40px;
+
   display:block;
   cursor:pointer;
 }
@@ -76,13 +78,13 @@
 
 
 /* hover only on the icon */
-#sbar2:hover{
+/* #sbar2:hover{
   display:none;
 }
 
 #sbar2:hover + #sbar{
   display:block;
-}
+} */ 
 
 .mapboxgl-ctrl-geocoder{
   display:none;
@@ -97,10 +99,9 @@
 </div>
 
 <div id="searchToggle">
-
-  <img id="sbar2" src='assets/images/sbar1.png'>
-  <img id="sbar" src='assets/images/sbar.png'>
-
+<img src="assets/images/sbar.png"
+onmouseover="this.src='assets/images/sbar1.png'"
+onmouseout="this.src='assets/images/sbar.png'">
 </div>
 
 
